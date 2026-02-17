@@ -81,13 +81,13 @@ INTERVIEW_QUESTIONS = [
     },
     {
         "id": 2,
-        "question": "Thinking about today's workshop on AI for research and teaching - what are you most hoping to learn or take away?",
+        "question": "Thinking about the workshop on AI for research and teaching - what are you most hoping to learn or take away?",
         "completeness_signals": ["specific learning goal or interest area", "connection to their work"],
         "suggested_followup": "Is there a specific challenge in your work where you think AI might help?"
     },
     {
         "id": 3,
-        "question": "Is there anything else you'd like me to know as we prepare for today's workshop? Any concerns about AI, specific topics you'd like covered, or questions you're hoping we'll address?",
+        "question": "Is there anything else you'd like me to know as we prepare for the workshop? Any concerns about AI, specific topics you'd like covered, or questions you're hoping we'll address?",
         "completeness_signals": ["specific concern or topic raised", "or clear indication nothing to add"],
         "suggested_followup": None
     }
@@ -113,7 +113,7 @@ You have exactly 3 questions to cover in about 5 minutes (with a hard stop at 8 
 
 ### Opening
 Start with a warm, brief greeting:
-"Hi! I'm ARIA, an AI research assistant. Thanks for taking a couple of minutes to chat with me before today's workshop. I have just three quick questions for you. Let's get started!"
+"Hi! I'm ARIA, an AI research assistant. Thanks for taking a couple of minutes to chat with me before the workshop. I have just three quick questions for you. Let's get started!"
 
 Then ask Question 1.
 
@@ -123,12 +123,12 @@ Then ask Question 1.
 This is a warm-up question. Accept any level of experience - from "I've never used it" to "I use it daily." If they say very little, one gentle follow-up is fine: "What was that experience like?" or "What prompted you to try it?"
 
 ### Question 2: Learning Goals
-"Thinking about today's workshop on AI for research and teaching - what are you most hoping to learn or take away?"
+"Thinking about the workshop on AI for research and teaching - what are you most hoping to learn or take away?"
 
 Listen for specific interests. If they're vague, one follow-up: "Is there a specific challenge in your work where you think AI might help?"
 
 ### Question 3: Anything Else
-"Is there anything else you'd like me to know as we prepare for today's workshop? Any concerns about AI, specific topics you'd like covered, or questions you're hoping we'll address?"
+"Is there anything else you'd like me to know as we prepare for the workshop? Any concerns about AI, specific topics you'd like covered, or questions you're hoping we'll address?"
 
 Accept any response - they may have specific concerns or simply say no. No follow-up needed. After their response, thank them warmly and close.
 
@@ -161,7 +161,7 @@ Accept any response - they may have specific concerns or simply say no. No follo
 ## CLOSING
 
 After Question 3, close warmly:
-"Thanks so much for sharing! Your input will help make today's workshop even more relevant. Enjoy the session!"
+"Thanks so much for sharing! Your input will help make the workshop even more relevant. Enjoy the session!"
 
 ## INTERNAL STATE TRACKING (do this silently)
 
@@ -805,7 +805,7 @@ HTML = """
             <div class="instructions">
                 <h3>How this works</h3>
                 <p>Click "Start Interview" and allow microphone access. ARIA will ask you 3 brief questions
-                   about your experience with AI and what you hope to learn today.
+                   about your experience with AI and what you hope to learn at the workshop.
                    Speak naturally &mdash; this takes about 3&ndash;5 minutes.
                    Your responses help the facilitator tailor the workshop to your needs.</p>
             </div>
@@ -855,7 +855,7 @@ HTML = """
                 </div>
                 <div class="question-item" data-q="2">
                     <div class="q-label">2 &middot; Learning Goals</div>
-                    What are you most hoping to learn or take away from today's workshop?
+                    What are you most hoping to learn or take away from the workshop?
                 </div>
                 <div class="question-item" data-q="3">
                     <div class="q-label">3 &middot; Anything Else</div>
@@ -902,7 +902,7 @@ let currentQuestionId = 1;
 // Question texts for display
 const questionTexts = {
     1: "Can you tell me about your experience with AI so far - in teaching, research, clinical work, or personal life?",
-    2: "What are you most hoping to learn or take away from today's workshop?",
+    2: "What are you most hoping to learn or take away from the workshop?",
     3: "Any concerns about AI, topics you'd like covered, or questions you're hoping we'll address?"
 };
 
