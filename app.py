@@ -1243,8 +1243,39 @@ document.addEventListener('DOMContentLoaded', () => {
 # ROUTES
 # =============================================================================
 
+SHUTDOWN_DATE = datetime(2026, 2, 25, 23, 59, 59)  # Feb 25, 2026 11:59 PM
+
+CLOSED_HTML = """
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ARIA - Interview Closed</title>
+    <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=Source+Sans+3:wght@400;600&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Source Sans 3', sans-serif; background: #faf6f1; min-height: 100vh; display: flex; align-items: center; justify-content: center; }
+        .card { text-align: center; max-width: 480px; padding: 3rem 2rem; }
+        .badge { display: inline-flex; align-items: center; gap: 0.4rem; background: #73000a; color: white; font-size: 0.7rem; font-weight: 700; letter-spacing: 2.5px; text-transform: uppercase; padding: 0.35rem 1rem; border-radius: 100px; margin-bottom: 1.5rem; }
+        h1 { font-family: 'DM Serif Display', serif; font-size: 1.6rem; color: #1a1a1a; margin-bottom: 1rem; }
+        p { color: #4a4a4a; line-height: 1.6; }
+    </style>
+</head>
+<body>
+    <div class="card">
+        <div class="badge">ARIA</div>
+        <h1>Pre-Workshop Interview Closed</h1>
+        <p>Thank you for your interest! The pre-workshop interview period has ended. See you at the workshop on February 27!</p>
+    </div>
+</body>
+</html>
+"""
+
+
 @app.get("/")
 def index():
+    if datetime.now() > SHUTDOWN_DATE:
+        return HTMLResponse(CLOSED_HTML)
     return HTMLResponse(HTML)
 
 
