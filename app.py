@@ -27,6 +27,11 @@ from datetime import datetime
 from typing import Optional
 import csv
 import io
+import smtplib
+from email.mime.text import MIMEText
+from email.mime.multipart import MIMEMultipart
+from email.mime.base import MIMEBase
+from email import encoders
 
 import nest_asyncio
 import uvicorn
@@ -58,6 +63,13 @@ WRAP_UP_WARNING_SECONDS = 60             # Start wrap-up 60 seconds before targe
 TRANSCRIPT_SAVE_DIR = os.environ.get('TRANSCRIPT_DIR', './interview_transcripts')
 
 os.makedirs(TRANSCRIPT_SAVE_DIR, exist_ok=True)
+
+# Email notification settings
+NOTIFY_EMAIL = os.environ.get('NOTIFY_EMAIL', '')       # Your email (recipient)
+SMTP_HOST = os.environ.get('SMTP_HOST', 'smtp.gmail.com')
+SMTP_PORT = int(os.environ.get('SMTP_PORT', '587'))
+SMTP_USER = os.environ.get('SMTP_USER', '')              # Sender Gmail address
+SMTP_PASS = os.environ.get('SMTP_PASS', '')              # Gmail App Password
 
 # Interview questions for USC Workshop (3 questions)
 INTERVIEW_QUESTIONS = [
@@ -211,6 +223,71 @@ class InterviewSession:
         with open(filepath, 'w', newline='', encoding='utf-8') as f:
             f.write(self.to_chronological_csv())
         return filepath
+
+
+def send_notification_email(session: InterviewSession):
+    """Send email notification with transcript attached after interview completion."""
+    if not all([NOTIFY_EMAIL, SMTP_USER, SMTP_PASS]):
+        print("Email not configured — skipping notification")
+        return
+
+    try:
+        # Build summary from transcript
+        entry_count = len(session.entries)
+        participant_entries = [e for e in session.entries if e.get('speaker') == 'participant']
+        duration = session.entries[-1]['elapsed_seconds'] if session.entries else 0
+        duration_min = int(duration // 60)
+        duration_sec = int(duration % 60)
+
+        # Extract participant responses for preview
+        preview_lines = []
+        for e in participant_entries[:6]:
+            text = e.get('text', '')
+            if len(text) > 150:
+                text = text[:150] + '...'
+            preview_lines.append(f"  Q{e.get('question_id', '?')}: {text}")
+        preview = '\n'.join(preview_lines) if preview_lines else '  (no participant responses captured)'
+
+        subject = f"ARIA Interview Completed — USC Workshop ({session.get_filename_timestamp()})"
+
+        body = f"""New ARIA pre-workshop interview completed!
+
+Duration: {duration_min}:{duration_sec:02d}
+Total exchanges: {entry_count}
+Participant responses: {len(participant_entries)}
+
+--- Participant Response Preview ---
+{preview}
+
+--- Full transcript attached as CSV ---
+
+ARIA · USC College of Nursing AI Workshop · Feb 27, 2026
+"""
+
+        msg = MIMEMultipart()
+        msg['From'] = SMTP_USER
+        msg['To'] = NOTIFY_EMAIL
+        msg['Subject'] = subject
+        msg.attach(MIMEText(body, 'plain'))
+
+        # Attach CSV transcript
+        csv_content = session.to_chronological_csv()
+        attachment = MIMEBase('text', 'csv')
+        attachment.set_payload(csv_content.encode('utf-8'))
+        encoders.encode_base64(attachment)
+        filename = f"usc_workshop_interview_{session.get_filename_timestamp()}.csv"
+        attachment.add_header('Content-Disposition', f'attachment; filename={filename}')
+        msg.attach(attachment)
+
+        with smtplib.SMTP(SMTP_HOST, SMTP_PORT) as server:
+            server.starttls()
+            server.login(SMTP_USER, SMTP_PASS)
+            server.send_message(msg)
+
+        print(f"Email notification sent to {NOTIFY_EMAIL}")
+
+    except Exception as e:
+        print(f"Failed to send email notification: {e}")
 
 
 # =============================================================================
@@ -1123,6 +1200,11 @@ function stopInterview() {
     document.getElementById('startBtn').textContent = 'Start New Interview';
 
     hideCurrentQuestionDisplay();
+
+    // Notify server interview is complete (triggers email notification)
+    if (sessionId) {
+        fetch(`/complete/${sessionId}`, { method: 'POST' }).catch(() => {});
+    }
 }
 
 async function downloadCSV() {
@@ -1280,6 +1362,25 @@ def download_transcript_csv(session_id: str):
         media_type="text/csv",
         headers={"Content-Disposition": f"attachment; filename={filename}"}
     )
+
+
+@app.post("/complete/{session_id}")
+async def complete_interview(session_id: str):
+    """Mark interview as complete, save final transcript, and send email notification."""
+    if session_id not in interview_sessions:
+        return JSONResponse({"error": "Session not found"}, status_code=404)
+
+    session = interview_sessions[session_id]
+    session.save_to_disk()
+
+    # Send email in background thread to not block response
+    threading.Thread(
+        target=send_notification_email,
+        args=(session,),
+        daemon=True
+    ).start()
+
+    return {"status": "ok", "message": "Interview completed, notification sent"}
 
 
 @app.get("/sessions")
