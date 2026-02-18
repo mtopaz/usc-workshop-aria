@@ -27,11 +27,7 @@ from datetime import datetime
 from typing import Optional
 import csv
 import io
-import smtplib
-from email.mime.text import MIMEText
-from email.mime.multipart import MIMEMultipart
-from email.mime.base import MIMEBase
-from email import encoders
+import base64
 
 import nest_asyncio
 import uvicorn
@@ -64,12 +60,9 @@ TRANSCRIPT_SAVE_DIR = os.environ.get('TRANSCRIPT_DIR', './interview_transcripts'
 
 os.makedirs(TRANSCRIPT_SAVE_DIR, exist_ok=True)
 
-# Email notification settings
+# Email notification settings (via Resend API)
 NOTIFY_EMAIL = os.environ.get('NOTIFY_EMAIL', '')       # Your email (recipient)
-SMTP_HOST = os.environ.get('SMTP_HOST', 'smtp.gmail.com')
-SMTP_PORT = int(os.environ.get('SMTP_PORT', '587'))
-SMTP_USER = os.environ.get('SMTP_USER', '')              # Sender Gmail address
-SMTP_PASS = os.environ.get('SMTP_PASS', '')              # Gmail App Password
+RESEND_API_KEY = os.environ.get('RESEND_API_KEY', '')   # Resend.com API key
 
 # Interview questions for USC Workshop (3 questions)
 INTERVIEW_QUESTIONS = [
@@ -226,71 +219,74 @@ class InterviewSession:
 
 
 def send_notification_email(session: InterviewSession):
-    """Send email notification with transcript attached after interview completion."""
-    if not all([NOTIFY_EMAIL, SMTP_USER, SMTP_PASS]):
-        print("Email not configured — skipping notification")
+    """Send email notification with transcript via Resend API."""
+    if not all([NOTIFY_EMAIL, RESEND_API_KEY]):
+        print("Email not configured — skipping notification (need NOTIFY_EMAIL and RESEND_API_KEY)")
         return
 
     try:
-        # Build summary from transcript
         entry_count = len(session.entries)
         participant_entries = [e for e in session.entries if e.get('speaker') == 'participant']
         duration = session.entries[-1]['elapsed_seconds'] if session.entries else 0
         duration_min = int(duration // 60)
         duration_sec = int(duration % 60)
 
-        # Extract participant responses for preview
+        # Build preview of participant responses
         preview_lines = []
         for e in participant_entries[:6]:
             text = e.get('text', '')
             if len(text) > 150:
                 text = text[:150] + '...'
-            preview_lines.append(f"  Q{e.get('question_id', '?')}: {text}")
-        preview = '\n'.join(preview_lines) if preview_lines else '  (no participant responses captured)'
+            preview_lines.append(f"Q{e.get('question_id', '?')}: {text}")
+        preview_html = '<br>'.join(preview_lines) if preview_lines else '(no participant responses captured)'
 
         subject = f"ARIA Interview Completed — USC Workshop ({session.get_filename_timestamp()})"
 
-        body = f"""New ARIA pre-workshop interview completed!
+        html_body = f"""
+        <h2>New ARIA pre-workshop interview completed!</h2>
+        <p><strong>Duration:</strong> {duration_min}:{duration_sec:02d}<br>
+        <strong>Total exchanges:</strong> {entry_count}<br>
+        <strong>Participant responses:</strong> {len(participant_entries)}</p>
+        <h3>Response Preview</h3>
+        <p style="background:#f5f5f5; padding:12px; border-radius:8px; font-size:14px;">
+        {preview_html}
+        </p>
+        <p style="color:#888; font-size:12px;">Full transcript attached as CSV.<br>
+        ARIA · USC College of Nursing AI Workshop · Feb 27, 2026</p>
+        """
 
-Duration: {duration_min}:{duration_sec:02d}
-Total exchanges: {entry_count}
-Participant responses: {len(participant_entries)}
-
---- Participant Response Preview ---
-{preview}
-
---- Full transcript attached as CSV ---
-
-ARIA · USC College of Nursing AI Workshop · Feb 27, 2026
-"""
-
-        msg = MIMEMultipart()
-        msg['From'] = SMTP_USER
-        msg['To'] = NOTIFY_EMAIL
-        msg['Subject'] = subject
-        msg.attach(MIMEText(body, 'plain'))
-
-        # Attach CSV transcript
+        # CSV as base64 attachment
         csv_content = session.to_chronological_csv()
-        attachment = MIMEBase('text', 'csv')
-        attachment.set_payload(csv_content.encode('utf-8'))
-        encoders.encode_base64(attachment)
+        csv_b64 = base64.b64encode(csv_content.encode('utf-8')).decode('utf-8')
         filename = f"usc_workshop_interview_{session.get_filename_timestamp()}.csv"
-        attachment.add_header('Content-Disposition', f'attachment; filename={filename}')
-        msg.attach(attachment)
 
-        # Try SSL (port 465) first, fall back to STARTTLS (port 587)
-        try:
-            with smtplib.SMTP_SSL(SMTP_HOST, 465, timeout=10) as server:
-                server.login(SMTP_USER, SMTP_PASS)
-                server.send_message(msg)
-        except Exception:
-            with smtplib.SMTP(SMTP_HOST, SMTP_PORT, timeout=10) as server:
-                server.starttls()
-                server.login(SMTP_USER, SMTP_PASS)
-                server.send_message(msg)
+        payload = {
+            "from": "ARIA <onboarding@resend.dev>",
+            "to": [NOTIFY_EMAIL],
+            "subject": subject,
+            "html": html_body,
+            "attachments": [
+                {
+                    "filename": filename,
+                    "content": csv_b64,
+                }
+            ]
+        }
 
-        print(f"Email notification sent to {NOTIFY_EMAIL}")
+        r = requests.post(
+            "https://api.resend.com/emails",
+            headers={
+                "Authorization": f"Bearer {RESEND_API_KEY}",
+                "Content-Type": "application/json"
+            },
+            json=payload,
+            timeout=10
+        )
+
+        if r.status_code in (200, 201):
+            print(f"Email notification sent to {NOTIFY_EMAIL}")
+        else:
+            print(f"Resend API error ({r.status_code}): {r.text}")
 
     except Exception as e:
         print(f"Failed to send email notification: {e}")
