@@ -279,10 +279,16 @@ ARIA · USC College of Nursing AI Workshop · Feb 27, 2026
         attachment.add_header('Content-Disposition', f'attachment; filename={filename}')
         msg.attach(attachment)
 
-        with smtplib.SMTP(SMTP_HOST, SMTP_PORT) as server:
-            server.starttls()
-            server.login(SMTP_USER, SMTP_PASS)
-            server.send_message(msg)
+        # Try SSL (port 465) first, fall back to STARTTLS (port 587)
+        try:
+            with smtplib.SMTP_SSL(SMTP_HOST, 465, timeout=10) as server:
+                server.login(SMTP_USER, SMTP_PASS)
+                server.send_message(msg)
+        except Exception:
+            with smtplib.SMTP(SMTP_HOST, SMTP_PORT, timeout=10) as server:
+                server.starttls()
+                server.login(SMTP_USER, SMTP_PASS)
+                server.send_message(msg)
 
         print(f"Email notification sent to {NOTIFY_EMAIL}")
 
