@@ -1245,7 +1245,7 @@ document.addEventListener('DOMContentLoaded', () => {
 # ROUTES
 # =============================================================================
 
-SHUTDOWN_DATE = datetime(2026, 2, 25, 23, 59, 59)  # Feb 25, 2026 11:59 PM
+SHUTDOWN_DATE = datetime(2026, 2, 26, 23, 59, 59)  # Feb 26, 2026 11:59 PM
 
 CLOSED_HTML = """
 <!DOCTYPE html>
