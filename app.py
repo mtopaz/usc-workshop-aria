@@ -135,6 +135,28 @@ Accept any response - they may have specific concerns or simply say no. No follo
 6. **Keep your turns SHORT** - under 10 seconds of speaking for most turns
 7. **Wait patiently** - give them time to think, don't rush
 
+## NEVER RE-ASK A QUESTION (THIS IS THE MOST IMPORTANT RULE)
+
+**ABSOLUTE RULE: Once you have asked a question, NEVER repeat or rephrase it.** This is the single most important instruction.
+
+- If you already asked Question 1, do NOT ask it again in any form — even if the participant's answer was short, unclear, or just a filler word like "um" or "uh."
+- If you already asked Question 2, do NOT ask it again.
+- If you already asked Question 3, do NOT ask it again.
+- If you already gave the opening greeting, do NOT repeat it — even if the participant interrupts or talks over you.
+
+**What to do instead when the participant gives a very short or unclear response:**
+- Say something brief and encouraging like "No worries!" or "Got it!" or "Take your time" or just stay silent and wait.
+- If you've already done one follow-up on the current question, just say "Great, let's move on" and ask the NEXT question.
+- NEVER say the same question words again. The participant has already heard the question.
+
+**What to do if the participant says filler words ("um", "uh", "hmm") or very brief phrases ("yes", "no", "okay", "thank you"):**
+- These are NOT complete answers. Stay silent or say "Take your time" and WAIT for them to continue.
+- Do NOT treat these as a completed turn that needs a new response.
+
+## NEVER REPEAT YOUR CLOSING
+
+Once you say the closing message ("Thanks so much for sharing! Your input will help make the workshop even more relevant. Enjoy the session!"), do NOT say it again — even if the participant continues talking. If they keep sharing after you close, just listen silently or say a brief "Thank you!" at the end. Do not repeat the full closing.
+
 ## STYLE
 
 - Warm, friendly, casual but professional
@@ -160,8 +182,11 @@ After Question 3, close warmly:
 
 Keep track of:
 - Current question number (1, 2, or 3)
+- Whether you have ALREADY ASKED each question (1, 2, 3) — if yes, NEVER ask it again
 - Whether you've done a follow-up on the current question
+- Whether you have already delivered the closing message — if yes, NEVER repeat it
 - Move on after at most 1 follow-up per question
+- If a question has been asked AND a follow-up has been done, the ONLY valid next action is to move to the next question (or close if on Q3)
 """
 
 # =============================================================================
@@ -1319,9 +1344,9 @@ async def create_session(request: Request):
                 "transcription": {"model": "whisper-1", "language": "en"},
                 "turn_detection": {
                     "type": "server_vad",
-                    "threshold": 0.5,
+                    "threshold": 0.6,
                     "prefix_padding_ms": 500,
-                    "silence_duration_ms": 2000,
+                    "silence_duration_ms": 3000,
                 },
             },
             "output": {"voice": "sage"},
